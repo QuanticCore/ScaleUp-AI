@@ -30,27 +30,19 @@ This Python script provides a toolchain to upscale video frames using the **Real
    cd video-upscaler
    ```
 
-2. Install dependencies:
-   - Ensure you have Python 3.8+ installed.
-   - Install required Python libraries:
-     ```bash
-     pip install -r requirements.txt
-     ```
-
-3. Install **Real-ESRGAN NCNN Vulkan**:
+2. Install **Real-ESRGAN NCNN Vulkan**:
    - Download the binary for your platform from the [Real-ESRGAN releases](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/releases).
    - Place the `realesrgan-ncnn-vulkan.exe` binary in the same directory as this script or in your system PATH.
 
-4. Ensure you have **FFmpeg** installed:
+3. Ensure you have **FFmpeg** installed:
    - On Debian/Ubuntu:
      ```bash
      sudo apt update && sudo apt install ffmpeg
      ```
    - On Windows:
-     Download from [FFmpeg.org](https://ffmpeg.org/) and add it to your PATH.
-     Another way is using choco:
+     Download from [FFmpeg.org](https://ffmpeg.org/) and add it to your PATH or by using choco:
      ```powershell
-        choco install ffmpeg
+      choco install ffmpeg
      ```
 
 ---
