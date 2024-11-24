@@ -32,16 +32,27 @@ def run_command(command):
         exit(0)
 
 
+def clear_console():
+    """Clear the console screen."""
+    if os.name == 'nt':  # For Windows
+        os.system('cls')
+    else:  # For Linux or macOS
+        os.system('clear')
+
+
 def print_progress_bar(iteration, total, prefix='', suffix='', length=50, fill='█'):
     if total == 0:
         return  # Avoid division by zero
     percent = ("{0:.1f}").format(100 * (iteration / float(total)))
     filled_length = int(length * iteration // total)
     bar = fill * filled_length + '-' * (length - filled_length)
+
+    # Print the progress bar (this will be on the last line)
     print(f'\r{prefix} |{bar}| {percent}% {suffix}', end='\r')
+
+    # If the iteration is complete, print a newline (end the progress bar)
     if iteration == total:
         print()
-
 
 def calculate_framerate(frame_rate_str):
     parts = frame_rate_str.split('x')
@@ -85,7 +96,6 @@ def upscale_frame(input_frame, output_frame, model, upscale_factor, gpu_id):
 def process_frame(input_frame_path, output_frame_path, frame_index, total_frames, model, upscale_factor, gpu_id, recent_times, thread_count):
     """
     Process a single frame and estimate the remaining time using a sliding window of recent frame times.
-    
     - recent_times: A deque that holds the processing times of the most recent frames
     """
     # Start time to calculate elapsed time
@@ -119,8 +129,13 @@ def process_frame(input_frame_path, output_frame_path, frame_index, total_frames
     minutes, seconds = divmod(remainder, 60)
     formatted_remaining_time = f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
 
+    clear_console()
+    print(f"Processed Frame {frames_processed}/{total_frames}: {input_frame_path}")
+    print(f"Elapsed Time: {elapsed_time:.2f}s | Average Time per Frame: {avg_time_per_frame:.2f}s")
+    print(f"Remaining Time: {formatted_remaining_time}")
+
     # Print progress bar with remaining time
-    print_progress_bar(frames_processed, total_frames, prefix='Progress', suffix=f'{remaining_frames} Frames | Remaining time: {formatted_remaining_time}', length=50)
+    print_progress_bar(frames_processed, total_frames, prefix='Progress', length=50)
 
 
 def merge_video_audio(output_video, input_audio):
@@ -154,7 +169,7 @@ def confirm_reset(tmp_frames_dir, out_frames_dir):
         print("No frames found to delete. Proceeding with reset.")
 
 
-def upscale_worker(frame_queue, total_frames, model, upscale_factor, gpu_id, start_index, thread_count):
+def upscale_worker(worker_id, frame_queue, total_frames, model, upscale_factor, gpu_id, start_index, thread_count, verbose):
     """
     Worker function for upscaling frames. Pulls frames from the queue and processes them.
     Skips frames based on the starting index.
@@ -164,6 +179,7 @@ def upscale_worker(frame_queue, total_frames, model, upscale_factor, gpu_id, sta
 
     while not stop_threads:
         frame_index, input_frame_path, output_frame_path = frame_queue.get()
+        
         if frame_index is None:  # Sentinel to exit the thread
             break
 
@@ -177,7 +193,6 @@ def upscale_worker(frame_queue, total_frames, model, upscale_factor, gpu_id, sta
 
         # Mark task as done
         frame_queue.task_done()
-
 
 
 def signal_handler(signal, frame):
@@ -202,6 +217,7 @@ def main():
     parser.add_argument('--tmp_frames', default=TMP_FRAMES_DIR, help='Directory for temporary frames (default: tmp_frames)')
     parser.add_argument('--out_frames', default=OUT_FRAMES_DIR, help='Directory for output frames (default: out_frames)')
     parser.add_argument('--thread_count', default=THREAD_COUNT, help='Amount of threads used to upscale the video')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Show more information')
 
     args = parser.parse_args()
 
@@ -254,8 +270,8 @@ def main():
 
         # Launch threads for frame processing
         threads = []
-        for _ in range(int(args.thread_count)):
-            thread = Thread(target=upscale_worker, args=(frame_queue, total_frames, args.model, args.upscale_factor, args.gpu_id, processed_frame_count, int(args.thread_count)))
+        for i in range(int(args.thread_count)):
+            thread = Thread(target=upscale_worker, args=(i, frame_queue, total_frames, args.model, args.upscale_factor, args.gpu_id, processed_frame_count, int(args.thread_count), args.verbose))
             thread.start()
             threads.append(thread)
 
